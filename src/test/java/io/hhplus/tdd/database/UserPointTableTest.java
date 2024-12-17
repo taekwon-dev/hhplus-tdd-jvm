@@ -1,6 +1,6 @@
 package io.hhplus.tdd.database;
 
-import io.hhplus.tdd.point.UserPoint;
+import io.hhplus.tdd.point.domain.UserPoint;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

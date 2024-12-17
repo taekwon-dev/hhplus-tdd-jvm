@@ -1,5 +1,6 @@
 package io.hhplus.tdd.point;
 
+import io.hhplus.tdd.point.domain.UserPoint;
 import io.restassured.RestAssured;
 import io.restassured.common.mapper.TypeRef;
 import org.junit.jupiter.api.BeforeEach;
