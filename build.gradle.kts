@@ -27,6 +27,7 @@ dependencies {
     annotationProcessor(libs.lombok)
     annotationProcessor(libs.spring.boot.configuration.processor)
     testImplementation(libs.spring.boot.starter.test)
+    testImplementation("io.rest-assured:rest-assured:5.5.0")
 }
 
 // about source and compilation
