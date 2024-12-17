@@ -3,6 +3,8 @@ package io.hhplus.tdd.point;
 import io.hhplus.tdd.database.UserPointTable;
 import io.hhplus.tdd.point.domain.UserPoint;
 import io.hhplus.tdd.point.service.PointService;
+import io.hhplus.tdd.point.service.dto.response.PointResponse;
+import io.hhplus.tdd.point.service.mapper.PointMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -19,16 +21,21 @@ class PointServiceTest {
         // given
         long id = 1L;
         long point = 100L;
+        UserPoint userPoint = new UserPoint(id, point, System.currentTimeMillis());
         UserPointTable pointRepository = mock(UserPointTable.class);
-        when(pointRepository.selectById(id)).thenReturn(new UserPoint(id, point, System.currentTimeMillis()));
-        PointService pointService = new PointService(pointRepository);
+        PointMapper pointMapper = mock(PointMapper.class);
+
+        when(pointRepository.selectById(id)).thenReturn(userPoint);
+        when(pointMapper.mapToPointResponse(userPoint)).thenReturn(new PointResponse(id, point));
+
+        PointService pointService = new PointService(pointRepository, pointMapper);
 
         // when
-        UserPoint userPoint = pointService.getPointsByUserId(id);
+        PointResponse response = pointService.getPointsByUserId(id);
 
         // then
-        assertThat(userPoint.id()).isEqualTo(id);
-        assertThat(userPoint.point()).isEqualTo(point);
+        assertThat(response.userId()).isEqualTo(id);
+        assertThat(response.point()).isEqualTo(point);
     }
 
     // 테스트 작성 이유: PointService getPointsByUserId(id) 메서드에 `등록되지 않은 ID`가 주어졌을 때 기능 테스트
@@ -37,15 +44,20 @@ class PointServiceTest {
     public void getPointsByUserId_Should_Return_UserPointWithZeroPoint_When_NonExistingId() {
         // given
         long id = 1L;
+        UserPoint userPoint = UserPoint.empty(id);
         UserPointTable pointRepository = mock(UserPointTable.class);
-        when(pointRepository.selectById(id)).thenReturn(UserPoint.empty(id));
-        PointService pointService = new PointService(pointRepository);
+        PointMapper pointMapper = mock(PointMapper.class);
+
+        when(pointRepository.selectById(id)).thenReturn(userPoint);
+        when(pointMapper.mapToPointResponse(userPoint)).thenReturn(new PointResponse(id, userPoint.point()));
+
+        PointService pointService = new PointService(pointRepository, pointMapper);
 
         // when
-        UserPoint userPoint = pointService.getPointsByUserId(id);
+        PointResponse response = pointService.getPointsByUserId(id);
 
         // then
-        assertThat(userPoint.id()).isEqualTo(id);
-        assertThat(userPoint.point()).isZero();
+        assertThat(response.userId()).isEqualTo(id);
+        assertThat(response.point()).isZero();
     }
 }

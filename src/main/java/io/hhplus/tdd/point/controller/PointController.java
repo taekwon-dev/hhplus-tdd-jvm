@@ -3,9 +3,11 @@ package io.hhplus.tdd.point.controller;
 import io.hhplus.tdd.point.domain.PointHistory;
 import io.hhplus.tdd.point.service.PointService;
 import io.hhplus.tdd.point.domain.UserPoint;
+import io.hhplus.tdd.point.service.dto.response.PointResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,10 +25,11 @@ public class PointController {
      * TODO - 특정 유저의 포인트를 조회하는 기능을 작성해주세요.
      */
     @GetMapping("{id}")
-    public UserPoint point(
+    public ResponseEntity<PointResponse> point(
             @PathVariable long id
     ) {
-        return pointService.getPointsByUserId(id);
+        PointResponse response = pointService.getPointsByUserId(id);
+        return ResponseEntity.ok(response);
     }
 
     /**

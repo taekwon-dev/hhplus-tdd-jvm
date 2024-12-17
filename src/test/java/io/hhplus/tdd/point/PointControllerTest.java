@@ -1,6 +1,7 @@
 package io.hhplus.tdd.point;
 
 import io.hhplus.tdd.point.domain.UserPoint;
+import io.hhplus.tdd.point.service.dto.response.PointResponse;
 import io.restassured.RestAssured;
 import io.restassured.common.mapper.TypeRef;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,13 +32,13 @@ class PointControllerTest {
         String url = String.format("/point/%d", id);
 
         // when
-        UserPoint response = RestAssured.given().log().all()
+        PointResponse response = RestAssured.given().log().all()
                 .when().get(url)
                 .then().log().all().statusCode(200)
                 .extract().as(new TypeRef<>() {});
 
         // then
-        assertThat(response.id()).isEqualTo(id);
+        assertThat(response.userId()).isEqualTo(id);
         assertThat(response.point()).isZero();
     }
 }
