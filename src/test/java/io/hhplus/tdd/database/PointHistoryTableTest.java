@@ -2,16 +2,14 @@ package io.hhplus.tdd.database;
 
 import io.hhplus.tdd.point.domain.PointHistory;
 import io.hhplus.tdd.point.domain.TransactionType;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PointHistoryTableTest {
 
-    @DisplayName("포인트 충전 기록을 추가한다.")
     @Test
-    public void insert_Should_Return_PointHistory_When_Charge() {
+    public void 포인트_충전_기록을_추가한다() {
         // given
         long id = 1L;
         long pointToCharge = 100L;
@@ -26,9 +24,8 @@ class PointHistoryTableTest {
         assertThat(pointHistory.type()).isEqualTo(TransactionType.CHARGE);
     }
 
-    @DisplayName("포인트 사용 기록을 추가한다.")
     @Test
-    public void insert_Should_Return_PointHistory_When_Use() {
+    public void 포인트_사용_기록을_추가한다() {
         // given
         long id = 1L;
         long pointToUse = 100L;
