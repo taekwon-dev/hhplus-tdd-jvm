@@ -8,7 +8,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class UserPointTableTest {
 
-    // 테스트 작성 이유: UserPointTable selectById(id) 메서드에 `등록된 ID`가 주어졌을 때 기능 테스트
     @DisplayName("등록된 ID로 유저 포인트 조회 시 해당 유저의 포인트를 반환한다.")
     @Test
     public void selectById_Should_Return_UserPoint_When_ExistingId() {
@@ -26,7 +25,6 @@ class UserPointTableTest {
         assertThat(userPoint.point()).isEqualTo(amount);
     }
 
-    // 테스트 작성 이유: UserPointTable selectById(id) 메서드에 `등록되지 않은 ID`가 주어졌을 때 기능 테스트
     @DisplayName("등록되지 않은 ID로 유저 포인트 조회 시 유저 등록된 후 0포인트를 반환한다.")
     @Test
     public void selectById_Should_Return_UserPointWithZeroPoint_When_NonExistingId() {
@@ -40,5 +38,41 @@ class UserPointTableTest {
         // then
         assertThat(userPoint.id()).isEqualTo(id);
         assertThat(userPoint.point()).isZero();
+    }
+
+    @DisplayName("기존 유저 포인트에 요청 포인트만큼 충전된다.")
+    @Test
+    public void insertOrUpdate_Should_Return_Updated_UserPoint_When_Charge() {
+        // given
+        long id = 1L;
+        long pointToCharge = 100L;
+        UserPointTable userPointTable = new UserPointTable();
+        userPointTable.selectById(id);
+
+        // when
+        UserPoint userPoint = userPointTable.insertOrUpdate(id, pointToCharge);
+
+        // then
+        assertThat(userPoint.id()).isEqualTo(id);
+        assertThat(userPoint.point()).isEqualTo(pointToCharge);
+    }
+
+    @DisplayName("기존 유저 포인트에 요청 포인트만큼 차감된다.")
+    @Test
+    public void insertOrUpdate_Should_Return_Updated_UserPoint_When_Use() {
+        // given
+        long id = 1L;
+        long currentPoint = 100L;
+        long pointToUse = 50L;
+        UserPointTable userPointTable = new UserPointTable();
+        userPointTable.selectById(id);
+        userPointTable.insertOrUpdate(id, currentPoint);
+
+        // when
+        UserPoint userPoint = userPointTable.insertOrUpdate(id, currentPoint - pointToUse);
+
+        // then
+        assertThat(userPoint.id()).isEqualTo(id);
+        assertThat(userPoint.point()).isEqualTo(currentPoint - pointToUse);
     }
 }

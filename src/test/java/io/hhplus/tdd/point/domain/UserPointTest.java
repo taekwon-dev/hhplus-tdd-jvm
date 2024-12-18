@@ -1,6 +1,5 @@
-package io.hhplus.tdd.point;
+package io.hhplus.tdd.point.domain;
 
-import io.hhplus.tdd.point.domain.UserPoint;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -63,7 +62,6 @@ class UserPointTest {
         assertThat(userPoint1.hashCode()).isNotEqualTo(userPoint2.hashCode());
     }
 
-    // 테스트 작성 이유: UserPoint 정적 메서드 empty(id) 기능 테스트
     @DisplayName("UserPoint.empty(id), 유저 ID 인자를 통해 0 포인트를 가지는 UserPoint 생성한다.")
     @Test
     public void empty_Should_Return_UserPointWithZeroPoint() {
