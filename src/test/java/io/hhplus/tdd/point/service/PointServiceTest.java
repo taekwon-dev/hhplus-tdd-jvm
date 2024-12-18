@@ -6,12 +6,16 @@ import io.hhplus.tdd.point.domain.PointHistory;
 import io.hhplus.tdd.point.domain.TransactionType;
 import io.hhplus.tdd.point.domain.UserPoint;
 import io.hhplus.tdd.point.service.dto.request.PointRequest;
+import io.hhplus.tdd.point.service.dto.response.PointHistoryResponse;
 import io.hhplus.tdd.point.service.dto.response.PointResponse;
 import io.hhplus.tdd.point.service.exception.InsufficientPointException;
 import io.hhplus.tdd.point.service.exception.MaxBalanceExceededException;
+import io.hhplus.tdd.point.service.mapper.PointHistoryMapper;
 import io.hhplus.tdd.point.service.mapper.PointMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -23,6 +27,7 @@ class PointServiceTest {
     private UserPointTable pointRepository;
     private PointHistoryTable pointHistoryRepository;
     private PointMapper pointMapper;
+    private PointHistoryMapper pointHistoryMapper;
     private PointService pointService;
 
     @BeforeEach
@@ -30,7 +35,8 @@ class PointServiceTest {
         pointRepository = mock(UserPointTable.class);
         pointHistoryRepository = mock(PointHistoryTable.class);
         pointMapper = mock(PointMapper.class);
-        pointService = new PointService(pointRepository, pointHistoryRepository, pointMapper);
+        pointHistoryMapper = mock(PointHistoryMapper.class);
+        pointService = new PointService(pointRepository, pointHistoryRepository, pointMapper, pointHistoryMapper);
     }
 
     @Test
@@ -148,5 +154,30 @@ class PointServiceTest {
         // when & then
         assertThatThrownBy(() -> pointService.usePoints(id, pointRequest))
                 .isInstanceOf(InsufficientPointException.class);
+    }
+
+    @Test
+    public void 유저의_포인트_거래_기록을_조회한다() {
+        // given
+        long id = 1L;
+        long pointToCharge = 2_000L;
+        long pointToUse = 1_000L;
+
+        PointHistory chargePointHistory = new PointHistory(1L, id, pointToCharge, TransactionType.CHARGE, System.currentTimeMillis());
+        PointHistory usePointHistory = new PointHistory(2L, id, pointToUse, TransactionType.USE, System.currentTimeMillis());
+        List<PointHistory> pointHistories = List.of(chargePointHistory, usePointHistory);
+
+        PointHistoryResponse chargePointHistoryResponse = new PointHistoryResponse(id, pointToCharge, TransactionType.CHARGE.name(), System.currentTimeMillis());
+        PointHistoryResponse usePointHistoryResponse = new PointHistoryResponse(id, pointToUse, TransactionType.USE.name(), System.currentTimeMillis());
+        List<PointHistoryResponse> pointHistoryResponses = List.of(chargePointHistoryResponse, usePointHistoryResponse);
+
+        when(pointHistoryRepository.selectAllByUserId(id)).thenReturn(pointHistories);
+        when(pointHistoryMapper.mapToPointHistoryResponses(pointHistories)).thenReturn(pointHistoryResponses);
+
+        // when
+        List<PointHistoryResponse> response = pointService.getPointHistoryByUserId(id);
+
+        // then
+        assertThat(response.size()).isEqualTo(2);
     }
 }

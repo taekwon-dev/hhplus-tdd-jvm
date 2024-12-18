@@ -1,7 +1,9 @@
 package io.hhplus.tdd.point.controller;
 
 import io.hhplus.tdd.config.TestConfig;
+import io.hhplus.tdd.point.domain.TransactionType;
 import io.hhplus.tdd.point.service.dto.request.PointRequest;
+import io.hhplus.tdd.point.service.dto.response.PointHistoryResponse;
 import io.hhplus.tdd.point.service.dto.response.PointResponse;
 import io.hhplus.tdd.util.DatabaseCleaner;
 import io.restassured.RestAssured;
@@ -12,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -268,5 +272,65 @@ class PointControllerTest {
                 .body(useRequest)
                 .when().patch(useUrl)
                 .then().log().all().statusCode(400);
+    }
+
+    @Test
+    public void 유저의_포인트_거래_기록이_없는_상태에서_조회한다() {
+        // given
+        long id = 1L;
+        String url = String.format("/point/%d/histories", id);
+
+        // when
+        List<PointHistoryResponse> response = RestAssured.given().log().all()
+                .when().get(url)
+                .then().log().all().statusCode(200)
+                .extract().as(new TypeRef<>() {
+                });
+
+        // then
+        assertThat(response.size()).isZero();
+    }
+
+    @Test
+    public void 유저의_포인트_거래_기록을_조회한다() {
+        // given
+        long id = 1L;
+        long pointToCharge = 2_000L;
+        long pointToUse = 1_000L;
+        PointRequest chargeRequest = new PointRequest(pointToCharge);
+        PointRequest useRequest = new PointRequest(pointToUse);
+        String chargeUrl = String.format("/point/%d/charge", id);
+        String useUrl = String.format("/point/%d/use", id);
+        String url = String.format("/point/%d/histories", id);
+
+        RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(chargeRequest)
+                .when().patch(chargeUrl)
+                .then().log().all().statusCode(200);
+
+        RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(useRequest)
+                .when().patch(useUrl)
+                .then().log().all().statusCode(200);
+
+        // when
+        List<PointHistoryResponse> response = RestAssured.given().log().all()
+                .when().get(url)
+                .then().log().all().statusCode(200)
+                .extract().as(new TypeRef<>() {
+                });
+
+        // then
+        assertThat(response.size()).isEqualTo(2);
+        assertPointHistoryResponse(response.get(0), id, pointToCharge, TransactionType.CHARGE);
+        assertPointHistoryResponse(response.get(1), id, pointToUse, TransactionType.USE);
+    }
+
+    private void assertPointHistoryResponse(PointHistoryResponse response, long userId, long point, TransactionType transactionType) {
+        assertThat(response.userId()).isEqualTo(userId);
+        assertThat(response.point()).isEqualTo(point);
+        assertThat(response.transactionType()).isEqualTo(transactionType.name());
     }
 }
