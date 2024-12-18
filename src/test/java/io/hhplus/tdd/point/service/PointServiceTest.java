@@ -7,9 +7,10 @@ import io.hhplus.tdd.point.domain.TransactionType;
 import io.hhplus.tdd.point.domain.UserPoint;
 import io.hhplus.tdd.point.service.dto.request.PointRequest;
 import io.hhplus.tdd.point.service.dto.response.PointResponse;
+import io.hhplus.tdd.point.service.exception.InsufficientPointException;
+import io.hhplus.tdd.point.service.exception.MaxBalanceExceededException;
 import io.hhplus.tdd.point.service.mapper.PointMapper;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,9 +33,8 @@ class PointServiceTest {
         pointService = new PointService(pointRepository, pointHistoryRepository, pointMapper);
     }
 
-    @DisplayName("등록된 ID로 유저 포인트 조회 시 해당 유저의 포인트를 반환한다.")
     @Test
-    public void getPointsByUserId_Should_Return_UserPoint_When_ExistingId() {
+    public void 등록된_ID로_유저_포인트_조회_시_해당_유저의_포인트를_반환한다() {
         // given
         long id = 1L;
         long point = 100L;
@@ -51,9 +51,8 @@ class PointServiceTest {
         assertThat(response.point()).isEqualTo(point);
     }
 
-    @DisplayName("등록되지 않은 ID로 유저 포인트 조회 시 유저 등록된 후 0포인트를 반환한다.")
     @Test
-    public void getPointsByUserId_Should_Return_UserPointWithZeroPoint_When_NonExistingId() {
+    public void 등록되지_않은_ID로_유저_포인트_조회_시_유저_등록된_후_0포인트를_반환한다() {
         // given
         long id = 1L;
         UserPoint userPoint = UserPoint.empty(id);
@@ -69,9 +68,8 @@ class PointServiceTest {
         assertThat(response.point()).isZero();
     }
 
-    @DisplayName("기존 유저 포인트에 요청 포인트만큼 충전된다.")
     @Test
-    public void chargePoints_Should_Return_UpdatedUserPoint() {
+    public void 요청_포인트만큼_충전된다() {
         // given
         long id = 1L;
         long cursorId = 1L;
@@ -94,9 +92,8 @@ class PointServiceTest {
         assertThat(response.point()).isEqualTo(afterChargePoint.point());
     }
 
-    @DisplayName("충전 후 최대 포인트 잔고를 초과하는 경우, 충전 요청에 실패한다.")
     @Test
-    public void chargePoints_Should_Throw_MaxBalanceExceededException() {
+    public void 충전_후_최대_포인트_잔고를_초과하는_경우_예외가_발생한다() {
         // given
         long id = 1L;
         long currentPoint = 999_999L;
@@ -108,6 +105,48 @@ class PointServiceTest {
 
         // when & then
         assertThatThrownBy(() -> pointService.chargePoints(id, pointRequest))
-                .isInstanceOf(RuntimeException.class);
+                .isInstanceOf(MaxBalanceExceededException.class);
+    }
+
+    @Test
+    public void 요청_포인트만큼_차감된다() {
+        // given
+        long id = 1L;
+        long cursorId = 1L;
+        long currentPoint = 100L;
+        long pointToUse = 90L;
+
+        UserPoint currentUserPoint = new UserPoint(id, currentPoint, System.currentTimeMillis());
+        PointRequest useRequest = new PointRequest(pointToUse);
+        UserPoint afterUsePoint = new UserPoint(id, currentUserPoint.point() - pointToUse, System.currentTimeMillis());
+        PointHistory usePointHistory = new PointHistory(cursorId, id, pointToUse, TransactionType.USE, System.currentTimeMillis());
+
+        when(pointRepository.selectById(id)).thenReturn(currentUserPoint);
+        when(pointRepository.insertOrUpdate(id, currentUserPoint.point() - pointToUse)).thenReturn(afterUsePoint);
+        when(pointHistoryRepository.insert(id, pointToUse, TransactionType.USE, System.currentTimeMillis())).thenReturn(usePointHistory);
+        when(pointMapper.mapToPointResponse(afterUsePoint)).thenReturn(new PointResponse(id, afterUsePoint.point()));
+
+        // when
+        PointResponse response = pointService.usePoints(id, useRequest);
+
+        // then
+        assertThat(response.userId()).isEqualTo(afterUsePoint.id());
+        assertThat(response.point()).isEqualTo(afterUsePoint.point());
+    }
+
+    @Test
+    public void 요청_포인트보다_잔액이_적은_경우_예외가_발생한다() {
+        // given
+        long id = 1L;
+        long currentPoint = 100L;
+        long pointToUse = 200L;
+        PointRequest pointRequest = new PointRequest(pointToUse);
+        UserPoint currentUserPoint = new UserPoint(id, currentPoint, System.currentTimeMillis());
+
+        when(pointRepository.selectById(id)).thenReturn(currentUserPoint);
+
+        // when & then
+        assertThatThrownBy(() -> pointService.usePoints(id, pointRequest))
+                .isInstanceOf(InsufficientPointException.class);
     }
 }

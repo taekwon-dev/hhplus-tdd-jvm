@@ -8,7 +8,6 @@ import io.restassured.RestAssured;
 import io.restassured.common.mapper.TypeRef;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -31,9 +30,8 @@ class PointControllerTest {
         databaseCleaner.execute();
     }
 
-    @DisplayName("유저의 현재 포인트를 조회한다.")
     @Test
-    public void get_UserPoint() {
+    public void 유저의_현재_포인트를_조회한다() {
         // given
         long id = 1L;
         String url = String.format("/point/%d", id);
@@ -50,9 +48,8 @@ class PointControllerTest {
         assertThat(response.point()).isZero();
     }
 
-    @DisplayName("포인트를 충전한다.")
     @Test
-    public void patch_UserPoint_When_Charge() {
+    public void 포인트를_충전한다() {
         // given
         long id = 1L;
         long pointToCharge = 100L;
@@ -73,9 +70,8 @@ class PointControllerTest {
         assertThat(response.point()).isEqualTo(pointToCharge);
     }
 
-    @DisplayName("충전 포인트 요청 값이 누락된 경우 예외가 발생한다.")
     @Test
-    public void patch_UserPoint_When_Charge2() {
+    public void 충전_포인트_요청값이_누락된_경우_예외가_발생한다() {
         // given
         long id = 1L;
         String url = String.format("/point/%d/charge", id);
@@ -87,9 +83,25 @@ class PointControllerTest {
                 .then().log().all().statusCode(400);
     }
 
-    @DisplayName("충전 포인트 요청 값이 음수인 경우 예외가 발생한다.")
     @Test
-    public void patch_UserPoint_When_Charge3() {
+    public void 충전_포인트_요청값이_0인_경우_예외가_발생한다() {
+        // given
+        long id = 1L;
+        long pointToCharge = 0L;
+        PointRequest request = new PointRequest(pointToCharge);
+        String url = String.format("/point/%d/charge", id);
+
+        // when & then
+        RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when().patch(url)
+                .then().log().all().statusCode(400);
+    }
+
+
+    @Test
+    public void 충전_포인트_요청값이_음수인_경우_예외가_발생한다() {
         // given
         long id = 1L;
         long pointToCharge = -100L;
@@ -105,9 +117,8 @@ class PointControllerTest {
     }
 
 
-    @DisplayName("충전 후 포인트가 최대 포인트 잔고 초과한 경우 예외가 발생한다.")
     @Test
-    public void patch_Failure_UserPoint_When_Charge_MaxBalanceExceededException() {
+    public void 충전_후_포인트가_최대_포인트_잔고_초과한_경우_예외가_발생한다() {
         // given
         long id = 1L;
         long currentPoint = 999_999L;
@@ -127,6 +138,135 @@ class PointControllerTest {
                 .contentType(ContentType.JSON)
                 .body(request2)
                 .when().patch(url)
+                .then().log().all().statusCode(400);
+    }
+
+    @Test
+    public void 포인트를_사용한다() {
+        // given
+        long id = 1L;
+        long currentPoint = 1_000L;
+        long pointToUse = 100L;
+        PointRequest chargeRequest = new PointRequest(currentPoint);
+        PointRequest useRequest = new PointRequest(pointToUse);
+        String chargeUrl = String.format("/point/%d/charge", id);
+        String useUrl = String.format("/point/%d/use", id);
+
+        RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(chargeRequest)
+                .when().patch(chargeUrl)
+                .then().log().all().statusCode(200);
+
+        // when
+        PointResponse response = RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(useRequest)
+                .when().patch(useUrl)
+                .then().log().all().statusCode(200)
+                .extract().as(new TypeRef<>() {
+                });
+
+        // then
+        assertThat(response.userId()).isEqualTo(id);
+        assertThat(response.point()).isEqualTo(currentPoint - pointToUse);
+    }
+
+
+    @Test
+    public void 사용_포인트_요청값이_누락된_경우_예외가_발생한다() {
+        // given
+        long id = 1L;
+        long currentPoint = 1_000L;
+        PointRequest chargeRequest = new PointRequest(currentPoint);
+        String chargeUrl = String.format("/point/%d/charge", id);
+        String useUrl = String.format("/point/%d/use", id);
+
+        RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(chargeRequest)
+                .when().patch(chargeUrl)
+                .then().log().all().statusCode(200);
+
+        // when & then
+        RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .when().patch(useUrl)
+                .then().log().all().statusCode(400);
+    }
+
+    @Test
+    public void 사용_포인트_요청값이_0인_경우_예외가_발생한다() {
+        // given
+        long id = 1L;
+        long currentPoint = 1_000L;
+        long pointToUse = 0L;
+        PointRequest chargeRequest = new PointRequest(currentPoint);
+        PointRequest useRequest = new PointRequest(pointToUse);
+        String chargeUrl = String.format("/point/%d/charge", id);
+        String useUrl = String.format("/point/%d/use", id);
+
+        RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(chargeRequest)
+                .when().patch(chargeUrl)
+                .then().log().all().statusCode(200);
+
+        // when & then
+        RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(useRequest)
+                .when().patch(useUrl)
+                .then().log().all().statusCode(400);
+    }
+
+    @Test
+    public void 사용_포인트_요청값이_음수인_경우_예외가_발생한다() {
+        // given
+        long id = 1L;
+        long currentPoint = 1_000L;
+        long pointToUse = -100L;
+        PointRequest chargeRequest = new PointRequest(currentPoint);
+        PointRequest useRequest = new PointRequest(pointToUse);
+        String chargeUrl = String.format("/point/%d/charge", id);
+        String useUrl = String.format("/point/%d/use", id);
+
+        RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(chargeRequest)
+                .when().patch(chargeUrl)
+                .then().log().all().statusCode(200);
+
+        // when & then
+        RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(useRequest)
+                .when().patch(useUrl)
+                .then().log().all().statusCode(400);
+    }
+
+    @Test
+    public void 포인트_잔액이_부족한_경우_예외가_발생한다() {
+        // given
+        long id = 1L;
+        long currentPoint = 1_000L;
+        long pointToUse = 2_000L;
+        PointRequest chargeRequest = new PointRequest(currentPoint);
+        PointRequest useRequest = new PointRequest(pointToUse);
+        String chargeUrl = String.format("/point/%d/charge", id);
+        String useUrl = String.format("/point/%d/use", id);
+
+        RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(chargeRequest)
+                .when().patch(chargeUrl)
+                .then().log().all().statusCode(200);
+
+        // when & then
+        RestAssured.given().log().all()
+                .contentType(ContentType.JSON)
+                .body(useRequest)
+                .when().patch(useUrl)
                 .then().log().all().statusCode(400);
     }
 }

@@ -6,6 +6,7 @@ import io.hhplus.tdd.point.domain.TransactionType;
 import io.hhplus.tdd.point.domain.UserPoint;
 import io.hhplus.tdd.point.service.dto.request.PointRequest;
 import io.hhplus.tdd.point.service.dto.response.PointResponse;
+import io.hhplus.tdd.point.service.exception.InsufficientPointException;
 import io.hhplus.tdd.point.service.exception.MaxBalanceExceededException;
 import io.hhplus.tdd.point.service.mapper.PointMapper;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,18 @@ public class PointService {
         }
         UserPoint userPoint = pointRepository.insertOrUpdate(userId, afterChargePoint);
         pointHistoryRepository.insert(userId, pointRequest.amount(), TransactionType.CHARGE, System.currentTimeMillis());
+
+        return pointMapper.mapToPointResponse(userPoint);
+    }
+
+    public PointResponse usePoints(long userId, PointRequest pointRequest) {
+        UserPoint currentUserPoint = pointRepository.selectById(userId);
+
+        if (currentUserPoint.point() < pointRequest.amount()) {
+            throw new InsufficientPointException();
+        }
+        UserPoint userPoint = pointRepository.insertOrUpdate(userId, currentUserPoint.point() - pointRequest.amount());
+        pointHistoryRepository.insert(userId, pointRequest.amount(), TransactionType.USE, System.currentTimeMillis());
 
         return pointMapper.mapToPointResponse(userPoint);
     }
