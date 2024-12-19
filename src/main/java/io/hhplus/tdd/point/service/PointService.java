@@ -16,6 +16,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +29,7 @@ public class PointService {
     private final PointHistoryTable pointHistoryRepository;
     private final PointMapper pointMapper;
     private final PointHistoryMapper pointHistoryMapper;
+    private final Map<Long, Lock> locks = new ConcurrentHashMap<>();
 
     public PointResponse getPointsByUserId(long userId) {
         UserPoint userPoint = pointRepository.selectById(userId);
@@ -33,33 +38,51 @@ public class PointService {
     }
 
     public PointResponse chargePoints(long userId, PointRequest pointRequest) {
-        UserPoint currentUserPoint = pointRepository.selectById(userId);
-        long afterChargePoint = currentUserPoint.point() + pointRequest.amount();
+        Lock lock = getLockForUser(userId);
 
-        if (afterChargePoint > UserPoint.MAX_BALANCE) {
-            throw new MaxBalanceExceededException();
+        lock.lock();
+        try {
+            UserPoint currentUserPoint = pointRepository.selectById(userId);
+            long afterChargePoint = currentUserPoint.point() + pointRequest.amount();
+
+            if (afterChargePoint > UserPoint.MAX_BALANCE) {
+                throw new MaxBalanceExceededException();
+            }
+            UserPoint userPoint = pointRepository.insertOrUpdate(userId, afterChargePoint);
+            pointHistoryRepository.insert(userId, pointRequest.amount(), TransactionType.CHARGE, System.currentTimeMillis());
+
+            return pointMapper.mapToPointResponse(userPoint);
+        } finally {
+            lock.unlock();
         }
-        UserPoint userPoint = pointRepository.insertOrUpdate(userId, afterChargePoint);
-        pointHistoryRepository.insert(userId, pointRequest.amount(), TransactionType.CHARGE, System.currentTimeMillis());
-
-        return pointMapper.mapToPointResponse(userPoint);
     }
 
     public PointResponse usePoints(long userId, PointRequest pointRequest) {
-        UserPoint currentUserPoint = pointRepository.selectById(userId);
+        Lock lock = getLockForUser(userId);
 
-        if (currentUserPoint.point() < pointRequest.amount()) {
-            throw new InsufficientPointException();
+        lock.lock();
+        try {
+            UserPoint currentUserPoint = pointRepository.selectById(userId);
+
+            if (currentUserPoint.point() < pointRequest.amount()) {
+                throw new InsufficientPointException();
+            }
+            UserPoint userPoint = pointRepository.insertOrUpdate(userId, currentUserPoint.point() - pointRequest.amount());
+            pointHistoryRepository.insert(userId, pointRequest.amount(), TransactionType.USE, System.currentTimeMillis());
+
+            return pointMapper.mapToPointResponse(userPoint);
+        } finally {
+            lock.unlock();
         }
-        UserPoint userPoint = pointRepository.insertOrUpdate(userId, currentUserPoint.point() - pointRequest.amount());
-        pointHistoryRepository.insert(userId, pointRequest.amount(), TransactionType.USE, System.currentTimeMillis());
-
-        return pointMapper.mapToPointResponse(userPoint);
     }
 
     public List<PointHistoryResponse> getPointHistoryByUserId(long userId) {
         List<PointHistory> pointHistories = pointHistoryRepository.selectAllByUserId(userId);
 
         return pointHistoryMapper.mapToPointHistoryResponses(pointHistories);
+    }
+
+    private Lock getLockForUser(long userId) {
+        return locks.computeIfAbsent(userId, user -> new ReentrantLock());
     }
 }
