@@ -35,7 +35,7 @@ class PointControllerTest {
     }
 
     @Test
-    public void 유저의_현재_포인트를_조회한다() {
+    public void 유저_포인트를_조회한다() {
         // given
         long id = 1L;
         String url = String.format("/point/%d", id);
@@ -53,7 +53,7 @@ class PointControllerTest {
     }
 
     @Test
-    public void 포인트를_충전한다() {
+    public void 유저_포인트를_충전한다() {
         // given
         long id = 1L;
         long pointToCharge = 100L;
@@ -122,7 +122,7 @@ class PointControllerTest {
 
 
     @Test
-    public void 충전_후_포인트가_최대_포인트_잔고_초과한_경우_예외가_발생한다() {
+    public void 충전_후_포인트가_최대_포인트_잔고를_초과한_경우_예외가_발생한다() {
         // given
         long id = 1L;
         long currentPoint = 999_999L;
@@ -146,7 +146,7 @@ class PointControllerTest {
     }
 
     @Test
-    public void 포인트를_사용한다() {
+    public void 유저_포인트를_사용한다() {
         // given
         long id = 1L;
         long currentPoint = 1_000L;

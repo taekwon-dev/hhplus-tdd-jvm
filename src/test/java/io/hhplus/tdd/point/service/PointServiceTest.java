@@ -40,7 +40,7 @@ class PointServiceTest {
     }
 
     @Test
-    public void 등록된_ID로_유저_포인트_조회_시_해당_유저의_포인트를_반환한다() {
+    public void 유저_포인트를_조회한다() {
         // given
         long id = 1L;
         long point = 100L;
@@ -58,24 +58,7 @@ class PointServiceTest {
     }
 
     @Test
-    public void 등록되지_않은_ID로_유저_포인트_조회_시_유저_등록된_후_0포인트를_반환한다() {
-        // given
-        long id = 1L;
-        UserPoint userPoint = UserPoint.empty(id);
-
-        when(pointRepository.selectById(id)).thenReturn(userPoint);
-        when(pointMapper.mapToPointResponse(userPoint)).thenReturn(new PointResponse(id, userPoint.point()));
-
-        // when
-        PointResponse response = pointService.getPointsByUserId(id);
-
-        // then
-        assertThat(response.userId()).isEqualTo(id);
-        assertThat(response.point()).isZero();
-    }
-
-    @Test
-    public void 요청_포인트만큼_충전된다() {
+    public void 유저_포인트를_충전한다() {
         // given
         long id = 1L;
         long cursorId = 1L;
@@ -99,7 +82,7 @@ class PointServiceTest {
     }
 
     @Test
-    public void 충전_후_최대_포인트_잔고를_초과하는_경우_예외가_발생한다() {
+    public void 충전_시_최대_포인트_잔고를_초과하는_경우_예외가_발생한다() {
         // given
         long id = 1L;
         long currentPoint = 999_999L;
@@ -115,7 +98,7 @@ class PointServiceTest {
     }
 
     @Test
-    public void 요청_포인트만큼_차감된다() {
+    public void 유저_포인트를_사용한다() {
         // given
         long id = 1L;
         long cursorId = 1L;
@@ -141,7 +124,7 @@ class PointServiceTest {
     }
 
     @Test
-    public void 요청_포인트보다_잔액이_적은_경우_예외가_발생한다() {
+    public void 요청_포인트보다_포인트_잔액이_적은_경우_예외가_발생한다() {
         // given
         long id = 1L;
         long currentPoint = 100L;

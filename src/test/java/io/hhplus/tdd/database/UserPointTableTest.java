@@ -43,7 +43,6 @@ class UserPointTableTest {
         long id = 1L;
         long pointToCharge = 100L;
         UserPointTable userPointTable = new UserPointTable();
-        userPointTable.selectById(id);
 
         // when
         UserPoint userPoint = userPointTable.insertOrUpdate(id, pointToCharge);
@@ -60,7 +59,6 @@ class UserPointTableTest {
         long currentPoint = 100L;
         long pointToUse = 50L;
         UserPointTable userPointTable = new UserPointTable();
-        userPointTable.selectById(id);
         userPointTable.insertOrUpdate(id, currentPoint);
 
         // when
